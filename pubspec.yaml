@@ -1,0 +1,18 @@
+name: nier_cli
+description: A sample command-line application.
+version: 1.0.0
+
+environment:
+  sdk: '>=2.19.0 <3.0.0'
+
+dev_dependencies:
+  lints: ^2.0.0
+dependencies:
+  archive: ^3.3.6
+  args: ^2.4.0
+  crclib: ^3.0.0
+  euc: ^1.0.6+8
+  path: ^1.8.3
+  tuple: ^2.0.1
+  uuid: ^3.0.7
+  xml: ^6.2.2

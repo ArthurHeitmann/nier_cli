@@ -1,0 +1,3 @@
+[submodule "assets/MrubyDecompiler"]
+	path = assets/MrubyDecompiler
+	url = https://github.com/ArthurHeitmann/MrubyDecompiler.git
