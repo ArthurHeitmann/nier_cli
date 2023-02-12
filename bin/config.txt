@@ -1,0 +1,4 @@
+# Add your default cmd arguments here
+# 1 line 1 argument
+# Lines starting with "#" are ignored
+# Take a look at the other config_XYZ.txt files for examples and presets

@@ -1,0 +1,3 @@
+--wwiseCli=C:\Program Files (x86)\Audiokinetic\Wwise v2014.1.6 build 5318\Authoring\x64\Release\bin\WwiseCLI.exe
+# Enable the bottom option when converting music
+# --wemBGM

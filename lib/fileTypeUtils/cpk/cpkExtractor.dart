@@ -6,7 +6,7 @@ import 'package:path/path.dart';
 import '../utils/ByteDataWrapper.dart';
 import 'cpk.dart';
 
-Future<void> extractCpk(String cpkPath, String extractDir) async {
+Future<List<String>> extractCpk(String cpkPath, String extractDir) async {
   var cpk = Cpk.read(await ByteDataWrapper.fromFile(cpkPath));
   for (var file in cpk.files) {
     print("Extracting ${file.name}");
@@ -15,4 +15,7 @@ Future<void> extractCpk(String cpkPath, String extractDir) async {
     await Directory(folder).create(recursive: true);
     await File(filePath).writeAsBytes(file.getData());
   }
+  return cpk.files
+    .map((file) => join(extractDir, file.path, file.name))
+    .toList();
 }

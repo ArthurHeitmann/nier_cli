@@ -29,6 +29,10 @@ class _DatHeader {
 
 Future<List<String>> extractDatFiles(String datPath, String extractDir, { bool shouldExtractPakFiles = false }) async {
   var bytes = await ByteDataWrapper.fromFile(datPath);
+  if (bytes.length == 0) {
+    print("Warning: Empty DAT file");
+    return [];
+  }
   var header = _DatHeader(bytes);
   bytes.position = header.fileOffsetsOffset;
   var fileOffsets = bytes.readUint32List(header.fileNumber);
@@ -74,6 +78,8 @@ Future<List<String>> extractDatFiles(String datPath, String extractDir, { bool s
   }
 
   print("Extracted ${fileNames.length} files");
-
-  return fileNames;
+  var extractedFiles = fileNames
+    .map((file) => path.join(extractDir, file))
+    .toList();
+  return extractedFiles;
 }

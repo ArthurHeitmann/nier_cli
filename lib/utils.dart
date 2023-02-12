@@ -429,8 +429,11 @@ Future<String?> findDttDir(String extractedDatDir, String datName) async {
 
 const _assetsDirName = "assets";
 const _assetsDirSubDirs = { "MrubyDecompiler", "vgmStream" };
+String? _assetsDir;
 Future<String> findAssetsDir() async {
-  var path = dirname(Platform.executable);
+  if (_assetsDir != null)
+    return _assetsDir!;
+  var path = getAppDir();
   // search cwd breadth first
   List<String> searchPathsQueue = [path];
   while (searchPathsQueue.isNotEmpty) {
@@ -441,9 +444,19 @@ Future<String> findAssetsDir() async {
       .map((f) => f.path)
       .toList();
     var subDirNames = subDirs.map((p) => basename(p)).toSet();
-    if (basename(path) == _assetsDirName && _assetsDirSubDirs.every((subDir) => subDirNames.contains(subDir)))
+    if (basename(path) == _assetsDirName && _assetsDirSubDirs.every((subDir) => subDirNames.contains(subDir))) {
+      _assetsDir = path;
       return path;
+    }
     searchPathsQueue.addAll(subDirs);
   }
   throw Exception("Couldn't find assets dir");
+}
+
+String getAppDir() {
+  var exePath = Platform.executable;
+  var currentDir = Directory.current.path;
+  if (basename(exePath) == "dart.exe")
+    return currentDir;
+  return dirname(exePath);
 }

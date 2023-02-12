@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart';
 
 import 'CliOptions.dart';
+import 'exception.dart';
 import 'fileTypeUtils/audio/bnkExtractor.dart';
 import 'fileTypeUtils/audio/bnkIO.dart';
 import 'fileTypeUtils/audio/bnkRepacker.dart';
@@ -24,38 +25,32 @@ import 'fileTypeUtils/yax/xmlToYax.dart';
 import 'fileTypeUtils/yax/yaxToXml.dart';
 import 'utils.dart';
 
-Future<bool> handleDatExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isDat) {
-    if (!strEndsWithDat(input))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (isDirectory)
-      return false;
-  }
+Future<bool> handleDatExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isDat)
+    return false;
+  if (!strEndsWithDat(input))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= join(dirname(input), datExtractSubDir, basename(input));
 
   print("Extracting DAT file to $output...");
 
   await Directory(output).create(recursive: true);
-  await extractDatFiles(input, output, shouldExtractPakFiles: args.extractPaksOnDatExtract);
+  var extractedFiles = await extractDatFiles(input, output);
+  if (args.autoExtractChildren)
+    pendingFiles.insertAll(0, extractedFiles);
 
   return true;
 }
-Future<bool> handleDatRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isDat) {
-    if (!strEndsWithDat(input))
-      return false;
-    if (!isDirectory)
-      return false;
-  }
-  else {
-    if (!isDirectory)
-      throw Exception("Input DAT file or directory does not exist");
-  }
+Future<bool> handleDatRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isDat)
+    return false;
+  if (!strEndsWithDat(input))
+    return false;
+  if (!isDirectory)
+    return false;
 
   if (output == null) {
     var nameExt = await getDatNameParts(input);
@@ -73,57 +68,45 @@ Future<bool> handleDatRepack(String input, String? output, CliOptions args, bool
   
   return true;
 }
-Future<bool> handlePakExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isPak) {
-    if (!input.endsWith(".pak"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (isDirectory)
-      return false;
-  }
+Future<bool> handlePakExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isPak)
+    return false;
+  if (!input.endsWith(".pak"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= join(dirname(input), pakExtractSubDir, basename(input));
 
   print("Extracting PAK file to $output...");
 
   await Directory(output).create(recursive: true);
-  await extractPakFiles(input, output);
+  var extractedFiles = await extractPakFiles(input, output);
+  if (args.autoExtractChildren)
+    pendingFiles.insertAll(0, extractedFiles);
 
   return true;
 }
-Future<bool> handlePakRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isPak) {
-    if (!input.endsWith(".pak"))
-      return false;
-    if (!isDirectory)
-      return false;
-  }
-  else {
-    if (!isDirectory)
-      throw Exception("Input PAK file or directory does not exist");
-  }
+Future<bool> handlePakRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isPak)
+    return false;
+  if (!input.endsWith(".pak"))
+    return false;
+  if (!isDirectory)
+    return false;
 
   print("Repacking PAK file to $output...");
 
   await repackPak(input, output);
   return true;
 }
-Future<bool> handleBxmToXml(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isBxm) {
-    if (!strEndsWithBxm(input))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (input.endsWith(".xml"))
-      return false;
-    if (!isFile)
-      throw Exception("Input BXM file does not exist");
-  }
+Future<bool> handleBxmToXml(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isBxm)
+    return false;
+  if (!strEndsWithBxm(input))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= input + ".xml";
 
@@ -133,29 +116,25 @@ Future<bool> handleBxmToXml(String input, String? output, CliOptions args, bool 
   
   return true;
 }
-Future<bool> handleXmlToBxm(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isBxm) {
-    if (!bxmExtensions.any((ext) => input.endsWith(ext + ".xml"))) {
-      if (!isFile)
+Future<bool> handleXmlToBxm(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isBxm)
+    return false;
+  if (!bxmExtensions.any((ext) => input.endsWith(ext + ".xml"))) {
+    if (!isFile)
+      return false;
+    if (input.endsWith(".xml")) {
+      var first3Bytes = await File(input)
+        .openRead(0, 3)
+        .expand((b) => b)
+        .toList();
+      var first3Chars = String.fromCharCodes(first3Bytes);
+      if (!const { "BXM", "XML" }.contains(first3Chars))
         return false;
-      if (input.endsWith(".xml")) {
-        var first3Bytes = await File(input)
-          .openRead(0, 3)
-          .expand((b) => b)
-          .toList();
-        var first3Chars = String.fromCharCodes(first3Bytes);
-        if (!const { "BXM", "XML" }.contains(first3Chars))
-          return false;
-      } else {
-        return false;
-      }
-    } else if (!isFile) {
+    } else {
       return false;
     }
-  }
-  else {
-    if (!isFile)
-      throw Exception("Input XML file does not exist");
+  } else if (!isFile) {
+    return false;
   }
 
   output ??= withoutExtension(input);
@@ -168,19 +147,13 @@ Future<bool> handleXmlToBxm(String input, String? output, CliOptions args, bool 
   
   return true;
 }
-Future<bool> handleYaxToXml(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isYax) {
-    if (!input.endsWith(".yax"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (input.endsWith(".xml"))
-      return false;
-    if (!isFile)
-      throw Exception("Input YAX file does not exist");
-  }
+Future<bool> handleYaxToXml(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isYax)
+    return false;
+  if (!input.endsWith(".yax"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= withoutExtension(input) + ".xml";
 
@@ -190,19 +163,15 @@ Future<bool> handleYaxToXml(String input, String? output, CliOptions args, bool 
   
   return true;
 }
-Future<bool> handleXmlToYax(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isYax) {
-    if (!input.endsWith(".xml"))
-      return false;
-    if (!isFile)
-      return false;
-    if (!dirname(input).endsWith(".pak"))
-      return false;
-  }
-  else {
-    if (!isFile)
-      throw Exception("Input XML file does not exist");
-  }
+Future<bool> handleXmlToYax(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isYax)
+    return false;
+  if (!input.endsWith(".xml"))
+    return false;
+  if (!isFile)
+    return false;
+  if (!dirname(input).endsWith(".pak"))
+    return false;
 
   output ??= withoutExtension(input) + ".yax";
 
@@ -212,19 +181,13 @@ Future<bool> handleXmlToYax(String input, String? output, CliOptions args, bool 
   
   return true;
 }
-Future<bool> handleMrubyDecompile(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isRuby) {
-    if (!const { ".mrb", ".bin" }.any((ext) => input.endsWith(ext)))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (input.endsWith(".rb"))
-      return false;
-    if (!isFile)
-      throw Exception("Input MRuby file does not exist");
-  }
+Future<bool> handleMrubyDecompile(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isRuby)
+    return false;
+  if (!const { ".mrb", ".bin" }.any((ext) => input.endsWith(ext)))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= withoutExtension(input) + ".rb";
 
@@ -235,17 +198,13 @@ Future<bool> handleMrubyDecompile(String input, String? output, CliOptions args,
   
   return true;
 }
-Future<bool> handleRubyCompile(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isRuby) {
-    if (!input.endsWith(".rb"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (!isFile)
-      throw Exception("Input Ruby file does not exist");
-  }
+Future<bool> handleRubyCompile(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isRuby)
+    return false;
+  if (!input.endsWith(".rb"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= withoutExtension(input) + ".bin";
 
@@ -256,24 +215,18 @@ Future<bool> handleRubyCompile(String input, String? output, CliOptions args, bo
   
   return true;
 }
-Future<bool> handleWtaWtpExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
+Future<bool> handleWtaWtpExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
   return 
-    await handleWtaExtract(input, output, args, isFile, isDirectory) ||
-    await handleWtpExtract(input, output, args, isFile, isDirectory);
+    await handleWtaExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles) ||
+    await handleWtpExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles);
 }
-Future<bool> handleWtaExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isWtaWtp) {
-    if (!input.endsWith(".wta"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    // if (isDirectory)
-    //   return false;
-    if (!isFile)
-      throw Exception("Input WTA file does not exist");
-  }
+Future<bool> handleWtaExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isWta)
+    return false;
+  if (!input.endsWith(".wta"))
+    return false;
+  if (!isFile)
+    return false;
   var wtpName = basenameWithoutExtension(input) + ".wtp";
   var datDir = dirname(input);
   // try to find wtp file. Multiple approaches:
@@ -292,7 +245,7 @@ Future<bool> handleWtaExtract(String input, String? output, CliOptions args, boo
       dttName = basenameWithoutExtension(input);
       dttDir = await findDttDir(datDir, dttName);
       if (dttDir == null)
-        throw Exception("Could not find WTP file for $input");
+        throw FileHandlingException("Could not find WTP file for $input");
       else
         wtpPath = join(dttDir, wtpName);
     } else {
@@ -300,7 +253,7 @@ Future<bool> handleWtaExtract(String input, String? output, CliOptions args, boo
     }
   }
   if (!await FileSystemEntity.isFile(wtpPath))
-    throw Exception("Could not find WTP file for $input");
+    throw FileHandlingException("Could not find WTP file for $input");
   print("Found WTP file at $wtpPath");
 
   var dttDir = dirname(wtpPath);
@@ -310,22 +263,17 @@ Future<bool> handleWtaExtract(String input, String? output, CliOptions args, boo
 
   await Directory(output).create(recursive: true);
   await extractWtaWtp(input, wtpPath, output);
+  processedFiles.add(wtpPath);
 
   return true;
 }
-Future<bool> handleWtpExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isWtaWtp) {
-    if (!input.endsWith(".wtp"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    // if (isDirectory)
-    //   return false;
-    if (!isFile)
-      throw Exception("Input WTP file does not exist");
-  }
+Future<bool> handleWtpExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isWtp)
+    return false;
+  if (!input.endsWith(".wtp"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= join(dirname(input), basename(input) + "_extracted");
 
@@ -336,19 +284,13 @@ Future<bool> handleWtpExtract(String input, String? output, CliOptions args, boo
 
   return true;
 }
-Future<bool> handleBnkExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isBnk) {
-    if (!input.endsWith(".bnk"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (isDirectory)
-      return false;
-    if (!isFile)
-      throw Exception("Input BNK file does not exist");
-  }
+Future<bool> handleBnkExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isBnk)
+    return false;
+  if (!input.endsWith(".bnk"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= join(dirname(input), basename(input) + "_extracted");
 
@@ -360,21 +302,18 @@ Future<bool> handleBnkExtract(String input, String? output, CliOptions args, boo
   
   return true;
 }
-Future<bool> handleBnkRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isBnk) {
-    if (!basename(input).contains(".bnk"))
-      return false;
-    if (!isDirectory)
-      return false;
-  }
-  else {
-    if (!isDirectory)
-      throw Exception("Input BNK directory does not exist");
-  }
+Future<bool> handleBnkRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isBnk)
+    return false;
+  if (!basename(input).contains(".bnk"))
+    return false;
+  if (!isDirectory)
+    return false;
+  
   if (output == null)
-    throw Exception("Output BNK file must be specified (for patching)");
+    throw FileHandlingException("Output BNK file must be specified (for patching)");
   if (!await FileSystemEntity.isFile(output))
-    throw Exception("Output BNK file does not exist (for patching)");
+    throw FileHandlingException("Output BNK file does not exist (for patching)");
 
   print("Repacking BNK to $output...");
 
@@ -382,19 +321,13 @@ Future<bool> handleBnkRepack(String input, String? output, CliOptions args, bool
   
   return true;
 }
-Future<bool> handleWemToWav(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isWem) {
-    if (!input.endsWith(".wem"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (input.endsWith(".wav"))
-      return false;
-    if (!isFile)
-      throw Exception("Input WEM file does not exist");
-  }
+Future<bool> handleWemToWav(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isWem)
+    return false;
+  if (!input.endsWith(".wem"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= withoutExtension(input) + ".wav";
 
@@ -405,17 +338,13 @@ Future<bool> handleWemToWav(String input, String? output, CliOptions args, bool 
 
   return true;
 }
-Future<bool> handleWavToWem(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isWem) {
-    if (!input.endsWith(".wav"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (!isFile)
-      throw Exception("Input WAV file does not exist");
-  }
+Future<bool> handleWavToWem(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isWem)
+    return false;
+  if (!input.endsWith(".wav"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= withoutExtension(input) + ".wem";
 
@@ -424,7 +353,7 @@ Future<bool> handleWavToWem(String input, String? output, CliOptions args, bool 
   var assetsDir = await findAssetsDir();
   var wwiseCliPath = args.wwiseCliPath;
   if (wwiseCliPath == null)
-    throw Exception("Wwise CLI path not specified");
+    throw FileHandlingException("Wwise CLI path not specified");
   
   input = absolute(input);
   output = absolute(output);
@@ -432,31 +361,27 @@ Future<bool> handleWavToWem(String input, String? output, CliOptions args, bool 
   
   return true;
 }
-Future<bool> handleCpkExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
-  if (!args.isCpk) {
-    if (!input.endsWith(".cpk"))
-      return false;
-    if (!isFile)
-      return false;
-  }
-  else {
-    if (isDirectory)
-      return false;
-    if (!isFile)
-      throw Exception("Input CPK file does not exist");
-  }
+Future<bool> handleCpkExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isCpk)
+    return false;
+  if (!input.endsWith(".cpk"))
+    return false;
+  if (!isFile)
+    return false;
 
   output ??= join(dirname(input), basename(input) + "_extracted");
 
   print("Extracting CPK to $output...");
 
   await Directory(output).create(recursive: true);
-  await extractCpk(input, output);
+  var extractedFiles = await extractCpk(input, output);
+  if (args.autoExtractChildren)
+    pendingFiles.insertAll(0, extractedFiles);
 
   return true;
 }
 
-const List<Future<bool> Function(String, String?, CliOptions, bool, bool)> _handlers = [
+const List<Future<bool> Function(String, String?, CliOptions, bool, bool, List<String>, Set<String>)> _handlers = [
   handleDatExtract,
   handleDatRepack,
   handlePakExtract,
@@ -475,17 +400,17 @@ const List<Future<bool> Function(String, String?, CliOptions, bool, bool)> _hand
   handleCpkExtract,
 ];
 
-Future<void> handleInput(String input, String? output, CliOptions args) async {
+Future<void> handleInput(String input, String? output, CliOptions args, List<String> pendingFiles, Set<String> processedFiles) async {
   bool isFile = await FileSystemEntity.isFile(input);
   bool isDirectory = await FileSystemEntity.isDirectory(input);
   if (!isFile && !isDirectory)
-    throw Exception("Input file or directory does not exist");
+    throw FileHandlingException("Input file or directory does not exist ($input)");
 
   for (var handler in _handlers) {
-    if (await handler(input, output, args, isFile, isDirectory)) {
-      print("Done :D");
+    if (await handler(input, output, args, isFile, isDirectory, pendingFiles, processedFiles)) {
       return;
     }
   }
-  throw Exception("Unknown file type");
+  if (!args.autoExtractChildren && !args.recursiveMode && !args.folderMode || pendingFiles.isEmpty && processedFiles.isEmpty)
+    throw FileHandlingException("Unknown file type");
 }
