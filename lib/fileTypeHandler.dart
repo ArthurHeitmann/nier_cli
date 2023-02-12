@@ -11,6 +11,7 @@ import 'fileTypeUtils/audio/wavToWemConverter.dart';
 import 'fileTypeUtils/audio/wemToWavConverter.dart';
 import 'fileTypeUtils/bxm/bxmReader.dart';
 import 'fileTypeUtils/bxm/bxmWriter.dart';
+import 'fileTypeUtils/cpk/cpkExtractor.dart';
 import 'fileTypeUtils/dat/datExtractor.dart';
 import 'fileTypeUtils/dat/datRepacker.dart';
 import 'fileTypeUtils/pak/pakExtractor.dart';
@@ -431,6 +432,29 @@ Future<bool> handleWavToWem(String input, String? output, CliOptions args, bool 
   
   return true;
 }
+Future<bool> handleCpkExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory) async {
+  if (!args.isCpk) {
+    if (!input.endsWith(".cpk"))
+      return false;
+    if (!isFile)
+      return false;
+  }
+  else {
+    if (isDirectory)
+      return false;
+    if (!isFile)
+      throw Exception("Input CPK file does not exist");
+  }
+
+  output ??= join(dirname(input), basename(input) + "_extracted");
+
+  print("Extracting CPK to $output...");
+
+  await Directory(output).create(recursive: true);
+  await extractCpk(input, output);
+
+  return true;
+}
 
 const List<Future<bool> Function(String, String?, CliOptions, bool, bool)> _handlers = [
   handleDatExtract,
@@ -448,6 +472,7 @@ const List<Future<bool> Function(String, String?, CliOptions, bool, bool)> _hand
   handleBnkRepack,
   handleWemToWav,
   handleWavToWem,
+  handleCpkExtract,
 ];
 
 Future<void> handleInput(String input, String? output, CliOptions args) async {

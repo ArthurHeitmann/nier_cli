@@ -39,8 +39,27 @@ class ByteDataWrapper {
   }
 
   static Future<ByteDataWrapper> fromFile(String path) async {
-    var buffer = await File(path).readAsBytes();
-    return ByteDataWrapper(buffer.buffer);
+    const twoGB = 2 * 1024 * 1024 * 1024;
+    var fileSize = await File(path).length();
+    if (fileSize < twoGB) {
+      var buffer = await File(path).readAsBytes();
+      return ByteDataWrapper(buffer.buffer);
+    } else {
+      print("File is over 2GB, loading in chunks");
+      var buffer = Uint8List(fileSize).buffer;
+      var file = File(path).openRead();
+      int position = 0;
+      int i = 0;
+      await for (var bytes in file) {
+        buffer.asUint8List().setRange(position, position + bytes.length, bytes);
+        position += bytes.length;
+        if (i % 100 == 0)
+          stdout.write("${(position / fileSize * 100).round()}%\r");
+        i++;
+      }
+      print("Read ${position} bytes");
+      return ByteDataWrapper(buffer);
+    }
   }
 
   int get position => _position;
@@ -156,43 +175,43 @@ class ByteDataWrapper {
     return List<int>.generate(length, (_) => readUint64());
   }
 
-  List<int> asUint8List(int length) {
+  Uint8List asUint8List(int length) {
     var list = Uint8List.view(buffer, _position, length);
     _position += length;
     return list;
   }
 
-  List<int> asUint16List(int length) {
+  Uint16List asUint16List(int length) {
     var list = Uint16List.view(buffer, _position, length);
     _position += length * 2;
     return list;
   }
 
-  List<int> asUint32List(int length) {
+  Uint32List asUint32List(int length) {
     var list = Uint32List.view(buffer, _position, length);
     _position += length * 4;
     return list;
   }
 
-  List<int> asUint64List(int length) {
+  Uint64List asUint64List(int length) {
     var list = Uint64List.view(buffer, _position, length);
     _position += length * 8;
     return list;
   }
 
-  List<int> asInt8List(int length) {
+  Int8List asInt8List(int length) {
     var list = Int8List.view(buffer, _position, length);
     _position += length;
     return list;
   }
 
-  List<int> asInt16List(int length) {
+  Int16List asInt16List(int length) {
     var list = Int16List.view(buffer, _position, length);
     _position += length * 2;
     return list;
   }
 
-  List<int> asInt32List(int length) {
+  Int32List asInt32List(int length) {
     var list = Int32List.view(buffer, _position, length);
     _position += length * 4;
     return list;

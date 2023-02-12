@@ -4,6 +4,7 @@ class CliOptions {
   final bool extractPaksOnDatExtract;
   final bool isWemBGM;
   final bool wemUsesVolumeNormalization;
+  final bool isCpk;
   final bool isDat;
   final bool isPak;
   final bool isBxm;
@@ -17,6 +18,7 @@ class CliOptions {
     this.wwiseCliPath,
     this.extractPaksOnDatExtract = false,
     this.isWemBGM = false, this.wemUsesVolumeNormalization = false,
+    this.isCpk = false,
     this.isDat = false, this.isPak = false,
     this.isBxm = false, this.isYax = false,
     this.isRuby = false, this.isWtaWtp = false,

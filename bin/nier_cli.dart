@@ -7,10 +7,11 @@ import 'package:nier_cli/fileTypeHandler.dart';
 Future<void> main(List<String> arguments) async {
   // arguments: [input, (optional) output, (optional) args]])]
   var argParser = ArgParser();
-  argParser.addOption("wwiseCli", help: "Path to WwiseCLI.exe, needed for WAV to WEM conversion");
   argParser.addFlag("extractPaksWithDat", help: "Extract PAK files when extracting DAT files", negatable: false);
+  argParser.addOption("wwiseCli", help: "Path to WwiseCLI.exe, needed for WAV to WEM conversion");
   argParser.addFlag("wemBGM", help: "When converting WAV to WEM, use music/BGM settings", negatable: false);
   argParser.addFlag("wemVolNorm", help: "When converting WAV to WEM, enable volume normalization", negatable: false);
+  argParser.addFlag("CPK", help: "Force CPK mode", negatable: false);
   argParser.addFlag("DAT", help: "Force DAT mode", negatable: false);
   argParser.addFlag("PAK", help: "Force PAK mode", negatable: false);
   argParser.addFlag("BXM", help: "Force BXM mode", negatable: false);
@@ -34,6 +35,7 @@ Future<void> main(List<String> arguments) async {
     wwiseCliPath: args["wwiseCli"],
     extractPaksOnDatExtract: args["extractPaksWithDat"],
     isWemBGM: args["wemBGM"], wemUsesVolumeNormalization: args["wemVolNorm"],
+    isCpk: args["CPK"],
     isDat: args["DAT"], isPak: args["PAK"],
     isBxm: args["BXM"], isYax: args["YAX"],
     isRuby: args["RUBY"], isWtaWtp: args["WTA"] || args["WTP"],
@@ -47,7 +49,7 @@ Future<void> main(List<String> arguments) async {
     print(e);
     print(stackTrace);
 
-    print("Press Enter...");
+    print("Press Enter to exit...");
     stdin.readLineSync();
   }
 }
