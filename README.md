@@ -25,7 +25,7 @@ Download the latest version from the [releases section](https://github.com/Arthu
 
 ### Drag & Drop
 
-![drag n drop GIF](readmeMedia/dragAndDrop.gif)
+https://user-images.githubusercontent.com/37270165/218335861-c6fd2c0c-9b28-49dc-a124-1919314af7a8.mp4
 
 ### Command line
 
@@ -36,7 +36,7 @@ Unpack CPK file to specific destination
 nier_cli "G:\Games\steamapps\common\NieRAutomata\data\data100.cpk" -o "D:\modding\na\data100.cpk_unpacked"
 ```
 
-Unpack several CPK files and also unpack all DAT files
+Unpack several CPK files and also unpack all DAT files and all their children
 ```bat
 nier_cli "G:\Games\steamapps\common\NieRAutomata\data\data015.cpk" "G:\Games\steamapps\common\NieRAutomata\data\data100.cpk" --autoExtractChildren
 ```
