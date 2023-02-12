@@ -21,9 +21,9 @@ Future<void> main(List<String> arguments) async {
   argParser.addFlag("recursive", abbr: "r", help: "Extract all files in a folder and all subfolders", negatable: false);
   argParser.addFlag("autoExtractChildren", help: "When unpacking DAT, CPK, PAK, etc. files automatically process all extracted files", negatable: false);
   argParser.addSeparator("WAV to WEM Conversion Options:");
-  argParser.addOption("wwiseCli", help: "Path to WwiseCLI.exe, needed for WAV to WEM conversion");
-  argParser.addFlag("wemBGM", help: "When converting WAV to WEM, use music/BGM settings", negatable: false);
-  argParser.addFlag("wemVolNorm", help: "When converting WAV to WEM, enable volume normalization", negatable: false);
+  argParser.addOption("wwiseCli", help: "Path to WwiseCLI.exe");
+  argParser.addFlag("wemBGM", help: "Use music/BGM settings", negatable: false);
+  argParser.addFlag("wemVolNorm", help: "Enable volume normalization", negatable: false);
   argParser.addSeparator("Extraction filters:");
   argParser.addFlag("CPK", help: "Only extract CPK files", negatable: false);
   argParser.addFlag("DAT", help: "Only extract DAT files", negatable: false);
@@ -139,6 +139,7 @@ void printHelp(ArgParser argParser) {
   print("  nier_cli <input1> [input2] [input...] [options]");
   print("or");
   print("  nier_cli <input> -o <output> [options]");
+  print("Options:");
   print(argParser.usage);
 }
 
