@@ -23,6 +23,7 @@ import 'fileTypeUtils/wta/wtaWtpExtractor.dart';
 import 'fileTypeUtils/wta/wtpDdsDumper.dart';
 import 'fileTypeUtils/yax/xmlToYax.dart';
 import 'fileTypeUtils/yax/yaxToXml.dart';
+import 'fileTypeUtils/z/zlibDecompress.dart';
 import 'utils.dart';
 
 Future<bool> handleDatExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
@@ -381,6 +382,23 @@ Future<bool> handleCpkExtract(String input, String? output, CliOptions args, boo
   return true;
 }
 
+Future<bool> handleZDecompress(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown)
+    return false;
+  if (!input.endsWith(".z"))
+    return false;
+  if (!isFile)
+    return false;
+
+  output ??= input + ".xml";
+
+  print("Decompressing .z to $output...");
+
+  await decompressZlibXml(input, output);
+
+  return true;
+}
+
 const List<Future<bool> Function(String, String?, CliOptions, bool, bool, List<String>, Set<String>)> _handlers = [
   handleDatExtract,
   handleDatRepack,
@@ -398,6 +416,7 @@ const List<Future<bool> Function(String, String?, CliOptions, bool, bool, List<S
   handleWemToWav,
   handleWavToWem,
   handleCpkExtract,
+  handleZDecompress,
 ];
 
 Future<void> handleInput(String input, String? output, CliOptions args, List<String> pendingFiles, Set<String> processedFiles) async {

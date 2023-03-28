@@ -319,7 +319,7 @@ bool strEndsWithDat(String str) {
   return false;
 }
 
-const bxmExtensions = { ".bxm", ".sar", ".gad" };
+const bxmExtensions = { ".bxm", ".sar", ".gad", ".seq" };
 bool strEndsWithBxm(String str) {
   for (var ext in bxmExtensions) {
     if (str.endsWith(ext))

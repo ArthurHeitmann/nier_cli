@@ -16,6 +16,7 @@ An all in one tool for converting all sorts of files from Nier Automata.
 | WTP        | ✅          | ❌         |
 | BNK        | ✅          | ✅         |
 | WEM/WAV    | ✅          | ✅         |
+| .Z         | ✅          | ❌         |
 
 ## Download
 
