@@ -83,7 +83,7 @@ Future<void> main(List<String> arguments) async {
     pendingFiles.addAll(Directory(input).listSync().where((e) => e is File).map((e) => e.path));
   } else if (options.output != null) {
     output = options.output;
-    pendingFiles.add(options.output!);
+    pendingFiles.add(input);
   } else {
     pendingFiles.addAll(args.rest);
   }
