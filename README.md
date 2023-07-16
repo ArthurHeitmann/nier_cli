@@ -1,6 +1,6 @@
-# Nier CLI
+# Nier CLI (for MGRR)
 
-An all in one tool for converting all sorts of files from Nier Automata.
+An all in one tool for converting all sorts of files from MGRR. Originally made for Nier Automata.
 
 ## Supported files
 
@@ -13,7 +13,6 @@ An all in one tool for converting all sorts of files from Nier Automata.
 | WTP        | ✅          | ❌         |
 | BNK        | ✅          | ✅         |
 | WEM/WAV    | ✅          | ✅         |
-| .Z         | ✅          | ❌         |
 
 ## Download
 
