@@ -13,9 +13,11 @@ struct {
 */
 import 'dart:io';
 
+import '../../utils.dart';
 import '../utils/ByteDataWrapper.dart';
 
 class WtaFileHeader {
+  static const size = 32;
   String id;
   int unknown;
   int numTex;
@@ -24,6 +26,16 @@ class WtaFileHeader {
   int offsetTextureFlags;
   int offsetTextureIdx;
   int offsetTextureInfo;
+
+  WtaFileHeader.empty() :
+    id = "WTB\x00",
+    unknown = 1,
+    numTex = 0,
+    offsetTextureOffsets = 0,
+    offsetTextureSizes = 0,
+    offsetTextureFlags = 0,
+    offsetTextureIdx = 0,
+    offsetTextureInfo = 0;
 
   WtaFileHeader.read(ByteDataWrapper bytes) :
     id = bytes.readString(4),
@@ -48,6 +60,7 @@ class WtaFileHeader {
 }
 
 class WtaFileTextureInfo {
+  static const size = 20;
   late int format;
   late List<int> data;
 
@@ -101,6 +114,8 @@ class WtaFile {
 
   static const int albedoFlag = 0x26000020;
   static const int noAlbedoFlag = 0x22000020;
+
+  WtaFile(this.header, this.textureOffsets, this.textureSizes, this.textureFlags, this.textureIdx, this.textureInfo);
   
   WtaFile.read(ByteDataWrapper bytes) {
     header = WtaFileHeader.read(bytes);
@@ -112,11 +127,15 @@ class WtaFile {
     textureFlags = bytes.readUint32List(header.numTex);
     bytes.position = header.offsetTextureIdx;
     textureIdx = bytes.readUint32List(header.numTex);
-    bytes.position = header.offsetTextureInfo;
-    textureInfo = List.generate(
-      header.numTex,
-      (i) => WtaFileTextureInfo.read(bytes)
-    );
+    if (header.offsetTextureInfo != 0) {
+      bytes.position = header.offsetTextureInfo;
+      textureInfo = List.generate(
+        header.numTex,
+        (i) => WtaFileTextureInfo.read(bytes)
+      );
+    } else {
+      textureInfo = [];
+    }
   }
 
   static Future<WtaFile> readFromFile(String path) async {
@@ -125,7 +144,12 @@ class WtaFile {
   }
 
   Future<void> writeToFile(String path) async {
-    var fileSize = header.offsetTextureInfo + textureInfo.length * 0x14;
+    int fileSize;
+    if (textureInfo.length > 0)
+      fileSize = header.offsetTextureInfo + textureInfo.length * WtaFileTextureInfo.size;
+    else
+      fileSize = header.offsetTextureIdx + textureIdx.length * 4;
+    fileSize = alignTo(fileSize, 32);
     var bytes = ByteDataWrapper.allocate(fileSize);
     header.write(bytes);
     
@@ -145,9 +169,11 @@ class WtaFile {
     for (var i = 0; i < textureIdx.length; i++)
       bytes.writeUint32(textureIdx[i]);
     
-    bytes.position = header.offsetTextureInfo;
-    for (var i = 0; i < textureInfo.length; i++)
-      textureInfo[i].write(bytes);
+    if (header.offsetTextureInfo != 0) {
+      bytes.position = header.offsetTextureInfo;
+      for (var i = 0; i < textureInfo.length; i++)
+        textureInfo[i].write(bytes);
+    }
 
     await File(path).writeAsBytes(bytes.buffer.asUint8List());
   }
@@ -155,9 +181,12 @@ class WtaFile {
   void updateHeader() {
     header.numTex = textureOffsets.length;
     header.offsetTextureOffsets = 0x20;
-    header.offsetTextureSizes = header.offsetTextureOffsets + textureOffsets.length * 4;
-    header.offsetTextureFlags = header.offsetTextureSizes + textureSizes.length * 4;
-    header.offsetTextureIdx = header.offsetTextureFlags + textureFlags.length * 4;
-    header.offsetTextureInfo = header.offsetTextureIdx + textureIdx.length * 4;
+    header.offsetTextureSizes = alignTo(header.offsetTextureOffsets + textureOffsets.length * 4, 32);
+    header.offsetTextureFlags = alignTo(header.offsetTextureSizes + textureSizes.length * 4, 32);
+    header.offsetTextureIdx = alignTo(header.offsetTextureFlags + textureFlags.length * 4, 32);
+    if (textureInfo.length > 0)
+      header.offsetTextureInfo = alignTo(header.offsetTextureIdx + textureIdx.length * 4, 32);
+    else
+      header.offsetTextureInfo = 0;
   }
 }

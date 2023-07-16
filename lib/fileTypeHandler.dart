@@ -20,6 +20,7 @@ import 'fileTypeUtils/pak/pakRepacker.dart';
 import 'fileTypeUtils/ruby/pythonRuby.dart';
 import 'fileTypeUtils/utils/ByteDataWrapper.dart';
 import 'fileTypeUtils/wta/wtaWtpExtractor.dart';
+import 'fileTypeUtils/wta/wtaWtpRepacker.dart';
 import 'fileTypeUtils/wta/wtpDdsDumper.dart';
 import 'fileTypeUtils/yax/xmlToYax.dart';
 import 'fileTypeUtils/yax/yaxToXml.dart';
@@ -257,8 +258,7 @@ Future<bool> handleWtaExtract(String input, String? output, CliOptions args, boo
     throw FileHandlingException("Could not find WTP file for $input");
   print("Found WTP file at $wtpPath");
 
-  var dttDir = dirname(wtpPath);
-  output ??= join(dttDir, basename(wtpName) + "_extracted");
+  output ??= join(datDir, basename(input) + "_extracted");
 
   print("Extracting WTA DDS files to $output...");
 
@@ -282,6 +282,33 @@ Future<bool> handleWtpExtract(String input, String? output, CliOptions args, boo
 
   await Directory(output).create(recursive: true);
   await dumpWtpDdsFiles(input, output);
+
+  return true;
+}
+Future<bool> handleWtaRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.onlyExtract || args.fileTypeIsKnown && !args.isWta)
+    return false;
+  if (!basename(input).contains("_extracted"))
+    return false;
+  if (!isDirectory)
+    return false;
+  var wtaBaseName = basenameWithoutExtension(input);
+  wtaBaseName = wtaBaseName.replaceAll("_extracted", "");
+  var wtaPath = join(dirname(input), wtaBaseName + ".wta");
+  if (await FileSystemEntity.isDirectory(wtaPath))
+    wtaPath = join(dirname(input), wtaBaseName + "_repacked.wta");
+  var wtpName = wtaBaseName + ".wtp";
+  
+  var datDir = dirname(input);
+  var wtpPath = await findWtpPath(datDir, wtpName);
+  if (wtpPath == null)
+    throw FileHandlingException("Could not find WTP file for $input");
+  print("Found WTP file at $wtpPath");
+
+  print("Repacking WTA from $input to $wtaPath and $wtpPath...");
+
+  await repackWtaWtp(wtaPath, wtpPath, input);
+  processedFiles.add(wtpPath);
 
   return true;
 }
@@ -411,6 +438,7 @@ const List<Future<bool> Function(String, String?, CliOptions, bool, bool, List<S
   handleMrubyDecompile,
   handleRubyCompile,
   handleWtaWtpExtract,
+  handleWtaRepack,
   handleBnkExtract,
   handleBnkRepack,
   handleWemToWav,

@@ -121,16 +121,16 @@ Future<void> main(List<String> arguments) async {
   if (processedFiles.length == 1)
     print("Done (${timeStr(tD)}) :D");
   else {
-    if (errorFiles.isNotEmpty) {
-      print("Failed to process ${errorFiles.length} files:");
-      for (var f in errorFiles)
-        print("- $f");
-    }
     print(
       "Processed ${processedFiles.length} files "
       "in ${timeStr(tD)} "
       ":D"
     );
+    if (errorFiles.isNotEmpty) {
+      print("Failed to process ${errorFiles.length} files:");
+      for (var f in errorFiles)
+        print("- $f");
+    }
   }
 }
 

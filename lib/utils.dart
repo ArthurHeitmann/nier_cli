@@ -12,6 +12,7 @@ import 'package:xml/xml.dart';
 
 import '../fileTypeUtils/dat/datExtractor.dart';
 import '../fileTypeUtils/utils/ByteDataWrapper.dart';
+import 'exception.dart';
 
 
 const datExtractSubDir = "nier2blender_extracted";
@@ -427,6 +428,27 @@ Future<String?> findDttDir(String extractedDatDir, String datName) async {
   return dttDir;
 }
 
+Future<String?> findWtpPath(String datDir, String wtpName) async {
+  var wtpPath = join(datDir, wtpName);
+  if (!await FileSystemEntity.isFile(wtpPath)) {
+    var dttName = basenameWithoutExtension(datDir);
+    var dttDir = await findDttDir(datDir, dttName);
+    if (dttDir == null) {
+      dttName = basenameWithoutExtension(datDir);
+      dttDir = await findDttDir(datDir, dttName);
+      if (dttDir == null)
+        throw FileHandlingException("Could not find WTP file for $wtpName");
+      else
+        wtpPath = join(dttDir, wtpName);
+    } else {
+      wtpPath = join(dttDir, wtpName);
+    }
+  }
+  if (!await FileSystemEntity.isFile(wtpPath))
+    return null;
+  return wtpPath;
+}
+
 const _assetsDirName = "assets";
 const _assetsDirSubDirs = { "MrubyDecompiler", "vgmStream" };
 String? _assetsDir;
@@ -459,4 +481,12 @@ String getAppDir() {
   if (basename(exePath) == "dart.exe")
     return currentDir;
   return dirname(exePath);
+}
+
+int alignTo(int value, int alignment) {
+  return ((value + alignment - 1) ~/ alignment) * alignment;
+}
+
+int remainingPadding(int value, int alignment) {
+  return alignTo(value, alignment) - value;
 }

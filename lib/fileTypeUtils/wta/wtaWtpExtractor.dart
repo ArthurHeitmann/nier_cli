@@ -12,7 +12,7 @@ Future<void> extractWtaWtp(String wtaPath, String wtpPath, String extractDir) as
     for (int i = 0; i < wta.header.numTex; i++) {
       await wtp.setPosition(wta.textureOffsets[i]);
       var ddsBytes = await wtp.read(wta.textureSizes[i]);
-      var ddsFile = File(join(extractDir, "${i}_${wta.textureIdx[i].toRadixString(16).padLeft(8)}.dds"));
+      var ddsFile = File(join(extractDir, "${i}_${wta.textureIdx[i].toRadixString(16).padLeft(8, "0")}.dds"));
       await ddsFile.writeAsBytes(ddsBytes);
     }
   } finally {
