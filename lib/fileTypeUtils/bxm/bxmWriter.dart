@@ -114,7 +114,7 @@ Future<void> xmlToBxm(XmlElement root, String savePath) async {
 
   // write file
   var header = BxmHeader(
-    "XML\x00",
+    "BXM\x00",
     0,
     nodeInfos.length,
     dataOffsets.length,
