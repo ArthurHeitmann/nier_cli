@@ -450,7 +450,7 @@ Future<String?> findWtpPath(String datDir, String wtpName) async {
 }
 
 const _assetsDirName = "assets";
-const _assetsDirSubDirs = { "MrubyDecompiler", "vgmStream" };
+const _assetsDirSubDirs = { "vgmStream" };
 String? _assetsDir;
 Future<String> findAssetsDir() async {
   if (_assetsDir != null)
