@@ -288,7 +288,7 @@ Future<bool> handleWtpExtract(String input, String? output, CliOptions args, boo
 Future<bool> handleWtaRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
   if (args.onlyExtract || args.fileTypeIsKnown && !args.isWta)
     return false;
-  if (!basename(input).contains("_extracted"))
+  if (!basename(input).contains(".wta"))
     return false;
   if (!isDirectory)
     return false;

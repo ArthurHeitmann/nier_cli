@@ -52,7 +52,7 @@ class BnkFile extends ChunkWithSize {
           return BnkUnknownChunk.read(bytes);
         var didxChunk = chunks.whereType<BnkDidxChunk>().first;
         return BnkDataChunk.read(bytes, didxChunk);
-      case "HIRC": return BnkHircChunk.read(bytes);
+      // case "HIRC": return BnkHircChunk.read(bytes);
       default: return BnkUnknownChunk.read(bytes);
     }
   }

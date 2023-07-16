@@ -8,11 +8,8 @@ An all in one tool for converting all sorts of files from Nier Automata.
 |------------|------------|-----------|
 | CPK        | ✅          | ❌         |
 | DAT        | ✅          | ✅         |
-| PAK        | ✅          | ✅         |
 | BXM        | ✅          | ✅         |
-| YAX        | ✅          | ✅         |
-| Ruby (BIN) | ✅          | ✅         |
-| WTA        | ✅          | ❌         |
+| WTA        | ✅          | ✅         |
 | WTP        | ✅          | ❌         |
 | BNK        | ✅          | ✅         |
 | WEM/WAV    | ✅          | ✅         |
