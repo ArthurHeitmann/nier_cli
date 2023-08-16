@@ -3,6 +3,8 @@ import 'package:xml/xml.dart';
 import '../utils/ByteDataWrapper.dart';
 
 
+const bxmEncoding = StringEncoding.shiftJis;
+
 class BxmHeader {
   final String type;
   final int flags;
