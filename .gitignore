@@ -67,3 +67,8 @@ bin/*.exe
 **/ios/Flutter/app.zip
 **/ios/Flutter/flutter_assets/
 **/ios/Flutte
+
+bin/*.7z
+bin/*.zip
+
+lib/tmp*
