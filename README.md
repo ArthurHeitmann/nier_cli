@@ -24,7 +24,11 @@ Download the latest version from the [releases section](https://github.com/Arthu
 
 ## Usage
 
+You will primarily only be using **Drag & Drop**. The **Command line** is only rarely needed.
+
 ### Drag & Drop
+
+Just drag & drop any supported file onto the .exe and it will convert it for you. The output will be in the same folder as the input file.
 
 https://user-images.githubusercontent.com/37270165/218335861-c6fd2c0c-9b28-49dc-a124-1919314af7a8.mp4
 
