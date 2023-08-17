@@ -33,12 +33,12 @@ XmlElement parseBxm(ByteDataWrapper bytes) {
     node.childCount = nodeInfo.childCount;
 
     var nodeNameOffset = dataOffsets[nodeInfo.dataIndex].nameOffset;
-    if (nodeNameOffset >= 0) {
+    if (nodeNameOffset != 0xFFFF) {
       bytes.position = stringsOffsets + nodeNameOffset;
       node.name = bytes.readStringZeroTerminated(encoding: bxmEncoding);
     }
     var nodeValueOffset = dataOffsets[nodeInfo.dataIndex].valueOffset;
-    if (nodeValueOffset >= 0) {
+    if (nodeValueOffset != 0xFFFF) {
       bytes.position = stringsOffsets + nodeValueOffset;
       node.value = bytes.readStringZeroTerminated(encoding: bxmEncoding);
     }
@@ -48,12 +48,12 @@ XmlElement parseBxm(ByteDataWrapper bytes) {
       var attributeName = "";
       var attributeValue = "";
       var attributeNameOffset = dataOffsets[nodeInfo.dataIndex + 1 + i].nameOffset;
-      if (attributeNameOffset >= 0) {
+      if (attributeNameOffset != 0xFFFF) {
         bytes.position = stringsOffsets + attributeNameOffset;
         attributeName = bytes.readStringZeroTerminated(encoding: bxmEncoding);
       }
       var attributeValueOffset = dataOffsets[nodeInfo.dataIndex + 1 + i].valueOffset;
-      if (attributeValueOffset >= 0) {
+      if (attributeValueOffset != 0xFFFF) {
         bytes.position = stringsOffsets + attributeValueOffset;
         attributeValue = bytes.readStringZeroTerminated(encoding: bxmEncoding);
       }
