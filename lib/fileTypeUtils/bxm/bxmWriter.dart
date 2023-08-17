@@ -54,15 +54,15 @@ Future<void> xmlToBxm(XmlElement root, String savePath) async {
   Map<XmlElement, int> nodeToDataIndex = {};
   for (var node in nodes) {
     var dataOffset = BxmDataOffsets(
-      stringToOffset[node.name.local] ?? -1,
-      stringToOffset[_getElementText(node).trim()] ?? -1,
+      stringToOffset[node.name.local] ?? 0xFFFF,
+      stringToOffset[_getElementText(node).trim()] ?? 0xFFFF,
     );
     nodeToDataIndex[node] = dataOffsets.length;
     dataOffsets.add(dataOffset);
     for (var attribute in node.attributes) {
       dataOffset = BxmDataOffsets(
-        stringToOffset[attribute.name.local] ?? -1,
-        stringToOffset[attribute.value] ?? -1,
+        stringToOffset[attribute.name.local] ?? 0xFFFF,
+        stringToOffset[attribute.value] ?? 0xFFFF,
       );
       dataOffsets.add(dataOffset);
     }
