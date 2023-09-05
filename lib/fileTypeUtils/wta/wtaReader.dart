@@ -127,7 +127,7 @@ class WtaFile {
     textureFlags = bytes.readUint32List(header.numTex);
     bytes.position = header.offsetTextureIdx;
     textureIdx = bytes.readUint32List(header.numTex);
-    if (header.offsetTextureInfo != 0) {
+    if (header.offsetTextureInfo != 0 && header.offsetTextureInfo < bytes.length) {
       bytes.position = header.offsetTextureInfo;
       textureInfo = List.generate(
         header.numTex,
