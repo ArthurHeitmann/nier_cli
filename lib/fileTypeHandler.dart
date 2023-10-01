@@ -217,10 +217,11 @@ Future<bool> handleRubyCompile(String input, String? output, CliOptions args, bo
   
   return true;
 }
-Future<bool> handleWtaWtpExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+Future<bool> handleWtaWtpWtbExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
   return 
     await handleWtaExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles) ||
-    await handleWtpExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles);
+    await handleWtpExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles) ||
+    await handleWtbExtract(input, output, args, isFile, isDirectory, pendingFiles, processedFiles);
 }
 Future<bool> handleWtaExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
   if (args.fileTypeIsKnown && !args.isWta)
@@ -285,30 +286,51 @@ Future<bool> handleWtpExtract(String input, String? output, CliOptions args, boo
 
   return true;
 }
+Future<bool> handleWtbExtract(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
+  if (args.fileTypeIsKnown && !args.isWtp)
+    return false;
+  if (!input.endsWith(".wtb"))
+    return false;
+  if (!isFile)
+    return false;
+
+  output ??= join(dirname(input), basename(input) + "_extracted");
+
+  print("Extracting WTB DDS files to $output...");
+
+  await Directory(output).create(recursive: true);
+  await extractWtaWtp(input, null, output, isWtb: true);
+
+  return true;
+}
 Future<bool> handleWtaRepack(String input, String? output, CliOptions args, bool isFile, bool isDirectory, List<String> pendingFiles, Set<String> processedFiles) async {
   if (args.onlyExtract || args.fileTypeIsKnown && !args.isWta)
     return false;
-  if (!basename(input).contains(".wta"))
+  if (!basename(input).contains(".wta") && !basename(input).contains(".wtb"))
     return false;
   if (!isDirectory)
     return false;
+  var isWtb = !input.endsWith(".wtb");
   var wtaBaseName = basenameWithoutExtension(input);
   wtaBaseName = wtaBaseName.replaceAll("_extracted", "");
-  var wtaPath = join(dirname(input), wtaBaseName + ".wta");
+  var wtaPath = join(dirname(input), wtaBaseName + (isWtb ? ".wtb" : ".wta"));
   if (await FileSystemEntity.isDirectory(wtaPath))
     wtaPath = join(dirname(input), wtaBaseName + "_repacked.wta");
-  var wtpName = wtaBaseName + ".wtp";
-  
-  var datDir = dirname(input);
-  var wtpPath = await findWtpPath(datDir, wtpName);
-  if (wtpPath == null)
-    throw FileHandlingException("Could not find WTP file for $input");
-  print("Found WTP file at $wtpPath");
+  String? wtpPath;
+  if (!isWtb) {
+    var wtpName = wtaBaseName + ".wtp";
+    var datDir = dirname(input);
+    wtpPath = await findWtpPath(datDir, wtpName);
+    if (wtpPath == null)
+      throw FileHandlingException("Could not find WTP file for $input");
+    print("Found WTP file at $wtpPath");
+  }
 
-  print("Repacking WTA from $input to $wtaPath and $wtpPath...");
+  print("Repacking WTA from $input to $wtaPath and ${wtpPath ?? ""}...");
 
-  await repackWtaWtp(wtaPath, wtpPath, input);
-  processedFiles.add(wtpPath);
+  await repackWtaWtp(wtaPath, wtpPath, input, isWtb: isWtb);
+  if (wtpPath != null)
+    processedFiles.add(wtpPath);
 
   return true;
 }
@@ -437,7 +459,7 @@ const List<Future<bool> Function(String, String?, CliOptions, bool, bool, List<S
   handleXmlToYax,
   handleMrubyDecompile,
   handleRubyCompile,
-  handleWtaWtpExtract,
+  handleWtaWtpWtbExtract,
   handleWtaRepack,
   handleBnkExtract,
   handleBnkRepack,

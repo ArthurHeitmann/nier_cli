@@ -5,9 +5,9 @@ import 'package:path/path.dart';
 
 import 'wtaReader.dart';
 
-Future<void> extractWtaWtp(String wtaPath, String wtpPath, String extractDir) async {
+Future<void> extractWtaWtp(String wtaPath, String? wtpPath, String extractDir, { bool isWtb = false }) async {
   var wta = await WtaFile.readFromFile(wtaPath);
-  var wtp = await File(wtpPath).open();
+  var wtp = await File(isWtb ? wtaPath : wtpPath!).open();
   try {
     for (int i = 0; i < wta.header.numTex; i++) {
       await wtp.setPosition(wta.textureOffsets[i]);

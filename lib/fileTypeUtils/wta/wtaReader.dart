@@ -57,6 +57,13 @@ class WtaFileHeader {
     bytes.writeUint32(offsetTextureIdx);
     bytes.writeUint32(offsetTextureInfo);
   }
+
+  int getFileEnd() {
+    if (offsetTextureInfo != 0)
+      return offsetTextureInfo + numTex * 20;
+    else
+      return offsetTextureIdx + numTex * 4;
+  }
 }
 
 class WtaFileTextureInfo {

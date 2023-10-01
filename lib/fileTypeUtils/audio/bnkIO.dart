@@ -1,4 +1,6 @@
 
+import 'dart:typed_data';
+
 import '../utils/ByteDataWrapper.dart';
 
 abstract class ChunkWithSize {
@@ -91,14 +93,19 @@ class BnkHeader extends BnkChunkBase {
   late int bnkId;
   late int languageId;
   late int isFeedbackInBnk;
-  late int projectId;
+  // late int projectId;
   late List<int> padding;
   List<int>? unknown;
 
-  BnkHeader(super.chunkId, super.chunkSize, this.version, this.bnkId, this.languageId, this.isFeedbackInBnk, this.projectId, this.padding, [this.unknown]);
+  BnkHeader(super.chunkId, super.chunkSize, this.version, this.bnkId, this.languageId, this.isFeedbackInBnk, this.padding, [this.unknown]);
 
   BnkHeader.read(ByteDataWrapper bytes) : super.read(bytes) {
-    if (chunkSize < 20) {
+    if (chunkSize > 30) {
+      bytes.endian = Endian.big;
+      bytes.position -= 4;
+      chunkSize = bytes.readUint32();
+    }
+    if (chunkSize < 16) {
       print("Warning: BnkHeader chunk size is less than 20 ($chunkSize)");
       unknown = bytes.readUint8List(chunkSize);
       return;
@@ -107,8 +114,8 @@ class BnkHeader extends BnkChunkBase {
     bnkId = bytes.readUint32();
     languageId = bytes.readUint32();
     isFeedbackInBnk = bytes.readUint32();
-    projectId = bytes.readUint32();
-    padding = bytes.readUint8List(chunkSize - 20);
+    // projectId = bytes.readUint32();
+    padding = bytes.readUint8List(chunkSize - 0x10);
   }
 
   @override
@@ -123,14 +130,14 @@ class BnkHeader extends BnkChunkBase {
     bytes.writeUint32(bnkId);
     bytes.writeUint32(languageId);
     bytes.writeUint32(isFeedbackInBnk);
-    bytes.writeUint32(projectId);
+    // bytes.writeUint32(projectId);
     for (var i = 0; i < padding.length; i++)
       bytes.writeUint8(padding[i]);
   }
 
   @override
   int calculateSize() {
-    return 8 + (unknown?.length ?? 5*4 + padding.length);
+    return 8 + (unknown?.length ?? 4*4 + padding.length);
   }
 }
 

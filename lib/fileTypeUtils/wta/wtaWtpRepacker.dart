@@ -4,7 +4,7 @@ import 'dart:io';
 import '../../utils.dart';
 import 'wtaReader.dart';
 
-Future<void> repackWtaWtp(String wtaPath, String wtpPath, String extractedDir) async {
+Future<void> repackWtaWtp(String wtaPath, String? wtpPath, String extractedDir, { bool isWtb = false }) async {
   var ddsFiles = await Directory(extractedDir)
     .list()
     .where((f) => f is File)
@@ -26,30 +26,42 @@ Future<void> repackWtaWtp(String wtaPath, String wtpPath, String extractedDir) a
   List<int> textureSizes = [];
   List<int> textureFlags = List.generate(ddsFilesData.length, (_) => 0x20000020);
   List<int> textureIds = [];
-  var currentOffset = 0;
-  IOSink? wtp;
-  try {
-    wtp = await File(wtpPath).openWrite();
-    for (var ddsFile in ddsFilesData) {
-      var bytes = await File(ddsFile.path).readAsBytes();
-      wtp.add(bytes);
-      textureOffsets.add(currentOffset);
-      textureSizes.add(bytes.length);
-      textureIds.add(ddsFile.id);
-      currentOffset += bytes.length;
-      var padding = List.filled(remainingPadding(currentOffset, 16), 0);
-      currentOffset += padding.length;
-      wtp.add(padding);
-    }
-    await wtp.flush();
-  } finally {
-    await wtp?.close();
+  int currentOffset = 0;
+  for (var ddsFile in ddsFilesData) {
+    var ddsSize = await File(ddsFile.path).length();
+    textureOffsets.add(currentOffset);
+    textureSizes.add(ddsSize);
+    textureIds.add(ddsFile.id);
+    currentOffset += ddsSize;
+    var padding = List.filled(remainingPadding(currentOffset, isWtb ? 4096 : 16), 0);
+    currentOffset += padding.length;
   }
-
+  
   var wtaHeader = WtaFileHeader.empty();
   var wtaFile = WtaFile(wtaHeader, textureOffsets, textureSizes, textureFlags, textureIds, []);
   wtaFile.updateHeader();
+  if (isWtb) {
+    int texturesStartOffset = alignTo(wtaHeader.getFileEnd(), 4096);
+    for (int i = 0; i < textureOffsets.length; i++) {
+      textureOffsets[i] += texturesStartOffset;
+    }
+  }
   await wtaFile.writeToFile(wtaPath);
+
+  RandomAccessFile? wtp;
+  try {
+    wtp = await File(isWtb ? wtaPath : wtpPath!).open(mode: isWtb ? FileMode.append : FileMode.write);
+    for (int i = 0; i < textureOffsets.length; i++) {
+      await wtp.setPosition(textureOffsets[i]);
+      var texturePath = ddsFilesData[i].path;
+      var textureBytes = await File(texturePath).readAsBytes();
+      await wtp.writeFrom(textureBytes);
+    }
+    var endPadding = await wtp.position() % 4096;
+    await wtp.writeFrom(List.filled(endPadding, 0));
+  } finally {
+    await wtp?.close();
+  }
 
   print("Repacked $wtaPath and $wtpPath!");
 }
