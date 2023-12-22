@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:xml/xml.dart';
 
 import '../../utils.dart';
+import '../xml/xmlExtension.dart';
 import 'hashToStringMap.dart';
 import 'japToEng.dart';
 import '../utils/ByteDataWrapper.dart';
@@ -84,7 +85,7 @@ XmlElement yaxToXml(ByteDataWrapper bytes, { includeAnnotations = true }) {
 Future<void> yaxFileToXmlFile(String yaxFilePath, String xmlFilePath) async {
   var bytes = await ByteDataWrapper.fromFile(yaxFilePath);
   var xml = yaxToXml(bytes);
-  var xmlString = xml.toXmlString(pretty: true, indent: "\t");
+  var xmlString = xml.toPrettyString();
   var xmlFile = File(xmlFilePath);
   await xmlFile.writeAsString('<?xml version="1.0" encoding="utf-8"?>\n');
   await xmlFile.writeAsString(xmlString, mode: FileMode.append);
